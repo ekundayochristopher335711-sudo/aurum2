@@ -9,7 +9,7 @@ Vercel's Root Directory to the repository root, not `client/`.
 1. In Vercel, import the repository and select the `client/` folder as the root.
 2. Use the following build settings:
    - Framework Preset: `Vite`
-   - Build Command: `npm run vercel-build` (or `npm run build`)
+   - Build Command: `npm run build`
    - Output Directory: `dist`
 
 This frontend-only setup does not deploy the Express API. Configure `VITE_API_URL`

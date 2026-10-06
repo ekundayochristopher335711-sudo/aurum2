@@ -37,6 +37,7 @@ In your Vercel project → **Settings → General**:
   This is what was wrong before — the old setup deployed only the frontend, so there was
   no API and login could never work.
 - Framework Preset → **Other** (the included `vercel.json` handles the build).
+- Output Directory → **`dist`** (the root Vercel build writes the frontend here).
 
 ## 3. Vercel — environment variables
 
