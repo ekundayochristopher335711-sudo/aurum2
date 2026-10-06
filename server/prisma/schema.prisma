@@ -1,0 +1,444 @@
+generator client {
+  provider      = "prisma-client-js"
+  // "native" for local dev; the rhel target is the engine Vercel's serverless
+  // runtime needs. Both are generated so the same build runs in either place.
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  // Runtime queries go through the Supabase connection pooler (pgbouncer).
+  url      = env("DATABASE_URL")
+  // Migrations need a direct (non-pooled) connection. Falls back to DATABASE_URL
+  // if DIRECT_URL is not set (e.g. local dev against a plain Postgres).
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  COMMERCIAL_MANAGER
+  VIEWER
+}
+
+enum ContractType {
+  NEC3
+  NEC4
+}
+
+enum EWStatus {
+  OPEN
+  MITIGATED
+  CLOSED
+}
+
+enum RiskStatus {
+  OPEN
+  MITIGATED
+  CLOSED
+}
+
+enum CEStatus {
+  NOTIFIED
+  QUOTED
+  ASSESSED
+  IMPLEMENTED
+  CLOSED
+}
+
+enum NoticeType {
+  EARLY_WARNING
+  COMPENSATION_EVENT
+  INSTRUCTION
+  ACCEPTANCE
+  REJECTION
+  QUOTATION
+  ASSESSMENT
+  GENERAL
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(VIEWER)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Contract events (early warnings, CEs, notices, deadlines) are legally
+  // significant, so they default on. Comment traffic is opt-out.
+  notifyContractEvents Boolean @default(true)
+  notifyComments       Boolean @default(true)
+
+  projectMembers ProjectMember[]
+  auditLogs      AuditLog[]
+  passwordResets PasswordReset[]
+  comments       Comment[]
+  reactions      CommentReaction[]
+  commentViews   CommentView[]
+}
+
+model PasswordReset {
+  id        String    @id @default(cuid())
+  userId    String
+  token     String    @unique @default(cuid())
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Project {
+  id             String       @id @default(cuid())
+  name           String
+  description    String?
+  contractType   ContractType @default(NEC4)
+  clientName     String?
+  contractorName String?
+  startDate      DateTime?
+  endDate        DateTime?
+  contractValue  Float?
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  members            ProjectMember[]
+  invitations        Invitation[]
+  earlyWarnings      EarlyWarning[]
+  riskItems          RiskItem[]
+  compensationEvents CompensationEvent[]
+  notices            Notice[]
+  auditLogs          AuditLog[]
+  comments           Comment[]
+  documents          Document[]
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  userId    String
+  projectId String
+  role      Role     @default(VIEWER)
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId])
+}
+
+model EarlyWarning {
+  id           String   @id @default(cuid())
+  ewNumber     String
+  projectId    String
+  title        String
+  description  String
+  raisedBy     String
+  assignedTo   String?
+  dateRaised   DateTime
+  dateRequired DateTime?
+  status       EWStatus @default(OPEN)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  riskItems RiskItem[]
+  documents Document[]
+
+  @@unique([projectId, ewNumber])
+}
+
+model RiskItem {
+  id             String     @id @default(cuid())
+  riskId         String
+  projectId      String
+  earlyWarningId String?
+  description    String
+  probability    Int
+  costImpact     Float?
+  timeImpact     Int?
+  mitigation     String?
+  owner          String?
+  status         RiskStatus @default(OPEN)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  earlyWarning EarlyWarning? @relation(fields: [earlyWarningId], references: [id])
+
+  @@unique([projectId, riskId])
+}
+
+model CompensationEvent {
+  id              String   @id @default(cuid())
+  ceNumber        String
+  projectId       String
+  title           String
+  description     String
+  clauseRef        String?
+  dateAwareness    DateTime?
+  dateNotified     DateTime
+  dateResponseDue  DateTime?
+  dateQuotationDue DateTime?
+  valuationAmount  Float?
+  status          CEStatus @default(NOTIFIED)
+  notifiedBy      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  notices   Notice[]
+  documents Document[]
+
+  @@unique([projectId, ceNumber])
+}
+
+model Notice {
+  id           String     @id @default(cuid())
+  noticeNumber String
+  projectId    String
+  ceId         String?
+  type         NoticeType
+  title        String
+  content      String
+  issuedBy     String
+  issuedTo     String
+  dateIssued   DateTime
+  dueDate      DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  project Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  ce      CompensationEvent? @relation(fields: [ceId], references: [id])
+
+  @@unique([projectId, noticeNumber])
+}
+
+enum DocumentCategory {
+  GENERAL
+  PHOTO
+  DRAWING
+}
+
+model Document {
+  id         String           @id @default(cuid())
+  projectId  String
+  // A document may hang off a CE, an Early Warning, or the project itself
+  // (drawings and general project files).
+  ceId       String?
+  ewId       String?
+  category   DocumentCategory @default(GENERAL)
+  // Drawing number / reference or a caption for a photo
+  reference  String?
+  name       String
+  path       String
+  size       Int
+  mimeType   String
+  uploadedBy String
+  // File content stored in the database so uploads survive serverless deploys.
+  // Legacy rows (pre-migration) have null here and fall back to disk.
+  data       Bytes?
+  createdAt  DateTime         @default(now())
+
+  project Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  ce      CompensationEvent? @relation(fields: [ceId], references: [id], onDelete: Cascade)
+  ew      EarlyWarning?      @relation(fields: [ewId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, category])
+}
+
+enum QuoteService {
+  TAKE_OFF
+  ESTIMATE
+  TENDER_SUPPORT
+  COMMERCIAL_SUPPORT
+  BOQ
+  VARIATION
+  VALUATION
+  OTHER
+}
+
+enum QuoteStatus {
+  NEW
+  REVIEWING
+  QUOTED
+  ACCEPTED
+  IN_PROGRESS
+  COMPLETED
+  DECLINED
+}
+
+model QuoteRequest {
+  id                  String      @id @default(cuid())
+  name                String
+  company             String
+  email               String
+  telephone           String?
+  projectName         String
+  projectLocation     String?
+  service             QuoteService
+  tenderDeadline      DateTime?
+  briefDescription    String?
+  status              QuoteStatus @default(NEW)
+  requiredDelivery    DateTime?
+  fee                 Float?
+  notes               String?
+  clientRequirements  String?
+  requiredTrades      String?
+  missingInformation  String?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  documents           QuoteDocument[]
+  invoices            Invoice[]
+
+  @@index([status, tenderDeadline])
+  @@index([email])
+}
+
+model QuoteDocument {
+  id          String       @id @default(cuid())
+  quoteId     String
+  kind        String
+  name        String
+  mimeType    String
+  size        Int
+  data        Bytes
+  createdAt   DateTime     @default(now())
+  quote       QuoteRequest @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  @@index([quoteId])
+}
+
+model InvoiceSequence {
+  id      Int @id @default(1)
+  current Int @default(0)
+}
+
+model Invoice {
+  id             String       @id @default(cuid())
+  invoiceNumber  String       @unique
+  quoteId        String?
+  clientName     String
+  company        String?
+  email          String
+  projectName    String
+  description    String
+  amount         Float
+  vatRate        Float?
+  vatAmount      Float?
+  total          Float
+  currency       String       @default("GBP")
+  status         String       @default("UNPAID")
+  dueDate        DateTime?
+  paymentUrl     String?
+  stripeSession  String?
+  notes          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  quote          QuoteRequest? @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+
+  @@index([email, status])
+}
+
+model BusinessSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+enum CommentTarget {
+  PROJECT
+  EARLY_WARNING
+  RISK
+  COMPENSATION_EVENT
+  NOTICE
+}
+
+enum CommentVisibility {
+  EVERYONE
+  MANAGERS_ONLY
+}
+
+// Discussion thread attached to a project or to any record within it.
+// Kept polymorphic so one component serves every module.
+model Comment {
+  id         String            @id @default(cuid())
+  projectId  String
+  targetType CommentTarget
+  targetId   String
+  body       String
+  authorId   String
+  // MANAGERS_ONLY hides commercial discussion (e.g. funds) from Viewer
+  // accounts, which are typically the client side and subcontractors.
+  visibility CommentVisibility @default(EVERYONE)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  project   Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author    User              @relation(fields: [authorId], references: [id])
+  reactions CommentReaction[]
+
+  @@index([projectId, targetType, targetId])
+}
+
+// Remembers where each person had read up to in a thread, so we can show
+// unread badges without storing a row per comment per user.
+model CommentView {
+  id         String        @id @default(cuid())
+  userId     String
+  projectId  String
+  targetType CommentTarget
+  targetId   String
+  lastReadAt DateTime      @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetType, targetId])
+  @@index([userId, projectId])
+}
+
+// One row per person per emoji, so we can show who reacted with what.
+model CommentReaction {
+  id        String   @id @default(cuid())
+  commentId String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId, emoji])
+  @@index([commentId])
+}
+
+model Invitation {
+  id         String    @id @default(cuid())
+  email      String
+  projectId  String
+  role       Role      @default(VIEWER)
+  token      String    @unique @default(cuid())
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  invitedBy  String
+  createdAt  DateTime  @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  projectId  String?
+  entityType String
+  entityId   String
+  action     String
+  changes    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id])
+  project Project? @relation(fields: [projectId], references: [id])
+}

@@ -1,0 +1,8 @@
+import { Link, useParams } from 'react-router-dom'
+const content:Record<string,{title:string,body:string}>= {
+ privacy:{title:'Privacy Notice',body:'This page is a placeholder for the Aurum Project Controls privacy notice. The final notice should be inserted here before the public launch and should describe what personal and project information is collected, why it is used, retention, security, rights and contact details.'},
+ cookies:{title:'Cookie Notice',body:'This page is a placeholder for the Aurum Project Controls cookie notice. The final notice should identify any cookies or similar technologies used by the public website and explain the relevant choices.'},
+ terms:{title:'Terms of Use',body:'This page is a placeholder for the Aurum Project Controls website terms of use. Final legal wording should be inserted before launch.'},
+ business:{title:'Terms of Business',body:'This page is a placeholder for the Aurum Project Controls terms of business. The final terms should cover scope, client information, fees, programme, revisions, assumptions, exclusions, additional services, payment and acceptance.'},
+}
+export default function LegalPage(){const {type='privacy'}=useParams();const c=content[type]||content.privacy;return <div className="min-h-screen bg-slate-50 px-5 py-12"><div className="mx-auto max-w-3xl rounded-2xl bg-white p-8 shadow-sm"><Link to="/" className="text-sm font-semibold text-slate-500">← Back to Aurum</Link><p className="mt-8 text-sm font-bold uppercase tracking-widest text-amber-600">Aurum Project Controls</p><h1 className="mt-2 font-display text-3xl font-bold">{c.title}</h1><p className="mt-6 leading-8 text-slate-600">{c.body}</p></div></div>}
