@@ -34,10 +34,12 @@ Database → *Reset database password* if you don't have it).
 In your Vercel project → **Settings → General**:
 
 - **Root Directory** → set to the **repository root** (blank / `./`), **NOT `client`**.
-  This is what was wrong before — the old setup deployed only the frontend, so there was
-  no API and login could never work.
-- Framework Preset → **Other** (the included `vercel.json` handles the build).
-- Output Directory → **`dist`** (the root Vercel build writes the frontend here).
+  The root `vercel.json` defines separate Vercel services for `client/` and `server/`.
+- Do not set a project-wide Framework Preset, Build Command, or Output Directory.
+  Framework and build settings are configured per service in `vercel.json`.
+- Public routing sends `/api/*` to the Express `server` service and all other paths
+  to the Vite `client` service. The client calls the API through same-origin `/api`
+  URLs, so no service binding or `VITE_API_URL` is needed.
 
 ## 3. Vercel — environment variables
 
