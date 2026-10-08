@@ -52,7 +52,7 @@ function shell(inner: string): string {
   // fallback keeps the banner branded even in local dev (where CLIENT_URL is
   // localhost). Email clients block remote images until "show images" is
   // clicked, so the banner still reads fine without it.
-  const logoUrl = `${(process.env.CLIENT_URL || 'https://aurumite.com').replace(/\/$/, '')}/logo.png`
+  const logoUrl = `${(process.env.CLIENT_URL || 'https://aurumite.com').replace(/\/$/, '')}/logo-light.png`
   return `
     <div style="font-family:Inter,Arial,sans-serif;max-width:600px;margin:0 auto">
       <div style="background:#080F1C;padding:20px 24px;border-radius:8px 8px 0 0">

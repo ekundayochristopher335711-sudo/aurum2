@@ -34,7 +34,7 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen bg-navy-900 flex items-center justify-center p-6">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <img src="/logo.png" alt="Aurum" className="w-12 h-12 mx-auto mb-4" />
+          <img src="/logo-light.png" alt="Aurum" className="w-12 h-12 mx-auto mb-4" />
           <h1 className="text-2xl font-semibold text-white">Reset your password</h1>
           <p className="text-slate-400 text-sm mt-2">We'll email you a secure reset link</p>
         </div>

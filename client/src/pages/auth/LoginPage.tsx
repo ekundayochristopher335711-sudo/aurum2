@@ -52,7 +52,7 @@ export default function LoginPage() {
         {/* Top branding section */}
         <div className="relative z-10">
           <div className="flex items-center gap-4 mb-2">
-            <img src="/logo.png" alt="Aurum" className="w-12 h-12" />
+            <img src="/logo-light.png" alt="Aurum" className="w-12 h-12" />
             <div>
               <p className="text-white font-display font-bold text-2xl leading-none tracking-[0.2em]">AURUM</p>
               <p className="text-brand-yellow font-display text-xs font-medium mt-1 tracking-[0.3em] uppercase">Project Controls</p>
@@ -108,7 +108,7 @@ export default function LoginPage() {
           {/* Welcome header */}
           <div className="text-center mb-10">
             <div className="w-16 h-16 rounded-2xl bg-navy-900 flex items-center justify-center mx-auto mb-6 shadow-lg">
-              <img src="/logo.png" alt="Aurum" className="w-8 h-8 object-contain brightness-0 invert" />
+              <img src="/logo-light.png" alt="Aurum" className="w-8 h-8 object-contain" />
             </div>
             <h2 className="text-2xl font-bold text-slate-900 mb-2">Welcome back</h2>
             <p className="text-slate-400 text-sm leading-relaxed">

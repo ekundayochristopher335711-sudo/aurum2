@@ -69,7 +69,7 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
       {/* Logo */}
       <div className="px-5 py-5 border-b border-white/5">
         <div className="flex items-center gap-0">
-          <img src="/logo.png" alt="Aurum" className="w-10 h-10 shrink-0" />
+          <img src="/logo-light.png" alt="Aurum" className="w-10 h-10 shrink-0" />
           <div className="min-w-0">
             <p className="text-white font-display font-bold text-base leading-none tracking-wide">AURUM</p>
             <p className="text-slate-400 font-display text-[10px] mt-1 truncate tracking-[0.18em] uppercase">Project Controls</p>

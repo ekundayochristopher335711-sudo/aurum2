@@ -42,7 +42,7 @@ export function PageLoader() {
             </defs>
             <circle cx="50" cy="50" r="44" fill="none" stroke="url(#loaderGrad)" strokeWidth="6" strokeLinecap="round" strokeDasharray="200 76" />
           </svg>
-          <img src="/logo.png" alt="" className="relative h-10 w-10 object-contain" />
+          <img src="/logo-light.png" alt="" className="relative h-10 w-10 object-contain" />
         </div>
         <div className="text-center">
           <p className="text-white font-display font-bold text-lg tracking-wide">AURUM</p>
